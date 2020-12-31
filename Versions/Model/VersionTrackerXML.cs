@@ -7,24 +7,33 @@ using System.IO;
 
 namespace ResUtils.Versions.Model
 {
-    internal class Versions
+    public class VersionTrackerXML
     {
         [XmlAttribute]
         public string AssemblyName { get; set; }
 
-        public Version Version { get; set; }
+        public List<Version> Versions { get; set; }
     }
 
-    internal class Version
+    public class Version
     {
         [XmlAttribute]
-        public DateTime BuildDate { get; set; }
+        public string BuildDate { get; set; }
 
+        [XmlAttribute]
         public int Major { get; set; }
+
+        [XmlAttribute]
         public int Minor { get; set; }
+
+        [XmlAttribute]
         public int Build { get; set; }
+
+        [XmlAttribute]
         public int Revision { get; set; }
 
+
+        public string ver { get; set; }
         public string Comment { get; set; }
     }
 }
