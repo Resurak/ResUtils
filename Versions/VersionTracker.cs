@@ -6,6 +6,7 @@ using System.Xml;
 using System.Xml.Serialization;
 using System.IO;
 using ResUtils.Serialization;
+using ResUtils.CustomLogger;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -94,14 +95,14 @@ namespace ResUtils.Versions
 
         public async void Save()
         {
+            Logger.Log("Version Tracker - Start save");
+
             await Task.Run(() =>
             {
                 while (Loaded == false) { }
 
                 if (Assembly != null && !LoadFailed)
                 {
-                    CreateFolder();
-
                     Model.VersionTrackerXML versions = new Model.VersionTrackerXML
                     {
                         AssemblyName = Assembly.GetName().Name,
@@ -112,6 +113,8 @@ namespace ResUtils.Versions
 
                     if (versions.Versions.Count > 0)
                     {
+                        Logger.Log($"Total number of versions = {versions.Versions.Count}");
+
                         if (versions.Versions.Last().Minor != Minor || versions.Versions.Last().Major != Major || versions.Versions.Last().Build != Build)
                             lastRev = 0;
                         else lastRev = versions.Versions.Last().Revision + 1;
@@ -131,31 +134,32 @@ namespace ResUtils.Versions
                         ver = $"{Major}.{Minor}.{Build} rev {lastRev}"
                     });
 
-                    if (!File.Exists(saveFileName)) File.Create(saveFileName);
+                    Logger.Log($"Current version = {versions.Versions.Last().ver}");
 
-                    CustomSerializer.SerializeTo_XML<Model.VersionTrackerXML>(versions, saveFileName);
+                    CustomSerializer.SerializeTo_XML_File<Model.VersionTrackerXML>(versions, saveFileName);
                 }
             });
+
+            Logger.Log("Version saved");
         }
 
         internal async void Load()
         {
-            await Task.Run(() =>
-            {
-                CreateFolder();
+            Logger.Log("Loading version file");
 
-                Versions = CustomDeserializer.XML_Deserialize<Model.VersionTrackerXML>(saveFileName) ?? new Model.VersionTrackerXML();
-            });
-
-            Loaded = true;
-        }
-
-        internal void CreateFolder()
-        {
             AssemblyFolderName = Assembly.GetName().Name;
             SaveFileName = $"{Assembly.GetName().Name}.xml";
 
-            Directory.CreateDirectory(rootPath);
+            Utils.CheckDir(rootPath);
+
+            Versions = await CustomDeserializer.XML_Deserialize<Model.VersionTrackerXML>(saveFileName) ?? new Model.VersionTrackerXML();
+
+            if (string.IsNullOrWhiteSpace(Versions.AssemblyName))
+                Logger.Log("Version file was null. Created new", Logger.Info.Warning);
+            else Logger.Log("Version file loaded");
+
+
+            Loaded = true;
         }
     }
 }
