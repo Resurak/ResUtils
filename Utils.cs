@@ -1,7 +1,10 @@
-﻿using System;
+﻿using ResUtils.CustomLogger.XML;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -102,6 +105,82 @@ namespace ResUtils
                 return temp;
             }
             else return new List<string> { "Object to serialize was null" };
+        }
+
+        public static bool TypeIsList(Type t)
+        {
+            if (t.IsGenericType)
+                if (t.GetGenericTypeDefinition() == typeof(List<>))
+                    return true;
+            return false;
+        }
+
+        public static Type GetTypeFromList(Type t)
+        {
+            if (t != null)
+                return t.GetGenericArguments().First();
+            return null;
+        }
+
+        public static string GetStringIfValueNotNull(object str)
+        {
+            if (str != null)
+                return str.ToString() ?? "";
+            else return "";
+        }
+
+        internal static List<PropertyInfo[]> PropertyInfoArray_List = new();
+        internal static List<(string name, string value)> ExternalList = new();
+
+        public static List<(string name, string value)> GetPropertyNameAndValue<T>(T obj)
+        {
+            try
+            {
+                CustomLogger.Logger.Log("Starting GetPropertyNameAndValue", $"Type of Obj = {typeof(T)}");
+
+                List<(string name, string value)> MainList = new();
+                List<(string name, string value)> tempList = new();
+
+                if (TypeIsList(obj.GetType()))
+                {
+                    CustomLogger.Logger.Log($"the passed type is a list. here you have to figure out how to handle it. obj.gettype() : {obj.GetType()}");
+
+                    int index = 0;
+                    foreach (var item in obj as IList)
+                    {
+                        ExternalList = GetPropertyNameAndValue(item);
+                    }
+
+                    CustomLogger.Logger.Log($"tried to make a new list. list.count = {index}");
+                } else
+                {
+                    PropertyInfo[] temp = obj.GetType().GetProperties();
+
+                    foreach (var property in temp)
+                    {
+                        Type t = property.PropertyType;
+
+                        if (TypeIsList(t))
+                        {
+                            object o = property.GetValue(obj);
+                            MainList = GetPropertyNameAndValue(o);
+                        }
+                        else
+                        {
+                            MainList.Add(new(property.Name, GetStringIfValueNotNull(property.GetValue(obj))));                        
+                        }
+                    }
+
+                }
+
+                foreach (var item in ExternalList)
+                {
+                    MainList.Add(new(item.name, item.value));
+                }
+
+                CustomLogger.Logger.Log($"method ended. total list count = {MainList.Count}");
+                return MainList;
+            } catch (Exception e) { CustomLogger.Logger.LogException($"GetPropertyNameAndValue failed to execute", e.ToString()); return null; }
         }
     }
 }

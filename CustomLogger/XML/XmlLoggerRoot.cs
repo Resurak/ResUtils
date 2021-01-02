@@ -32,7 +32,21 @@ namespace ResUtils.CustomLogger.XML
 
         public string Log { get; set; }
 
-        public List<Param> ValueList { get; set; }
+        [XmlElement(IsNullable = false)]
+        public ValueList ParamListValues { get; set; }
+    }
+
+    public class ValueList
+    {
+        public ValueList()
+        {
+            li = new();
+        }
+
+        [XmlAttribute]
+        public string InstanceName { get; set; }
+
+        public List<Param> li { get; set; }
     }
 
     public class Param

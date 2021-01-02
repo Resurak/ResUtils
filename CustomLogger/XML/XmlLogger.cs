@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using ResUtils.Serialization;
@@ -19,12 +21,14 @@ namespace ResUtils.CustomLogger.XML
 
         internal static XmlLoggerRoot Xml_Instance = new();
 
-        public static async void StartLogging()
+        public static async void StartLogging(bool overwrite)
         {
+            if (overwrite) File.Delete(defaultOutput);
+
             Xml_Instance = new XmlLoggerRoot
             {
                 AssemblyName = Utils.GetAssemblyName(),
-                Logs = await LoadPreviousLogs() ?? new List<LogInfo>()
+                Logs = overwrite ? new List<LogInfo>() : await LoadPreviousLogs() ?? new List<LogInfo>()
             };
 
             Xml_Instance.Logs.Add(new XML.LogInfo
@@ -40,47 +44,85 @@ namespace ResUtils.CustomLogger.XML
         {
             lock (_lock)
             {
-                Xml_Instance.Logs.Add(new XML.LogInfo
-                {
-                    CallerName = Utils.GetInfoCallingMethod(new StackTrace()),
-                    Type = GetTypeString(LogType.Info),
-                    Log = value
-                });
+                AddLog(value, trace: new StackTrace());
 
                 Save();
             }
         }
 
-        public static void LogValueList<T>(string header, T obj)
+        public static void LogValueList<T>(string header, T obj, string instanceName = null)
         {
             lock (_lock)
             {
                 if (obj != null)
                 {
                     Type type = typeof(T);
-                    List<Param> _params = new();
+                    ValueList _params = new();
 
-                    foreach (var property in type.GetProperties())
+                    List<(string name, string value)> list = Utils.GetPropertyNameAndValue(obj);
+
+                    _params.InstanceName = instanceName ?? "";
+
+                    if (list != null && list.Count > 0)
                     {
-                        _params.Add(new Param
+                        Logger.Log("list was not null");
+                        foreach (var item in list)
                         {
-                            ParamName = property.Name,
-                            ParamValue = property.GetValue(obj) == null ? "" : (property.GetValue(obj).ToString() ?? "")
-                        });
+                            _params.li.Add(new Param
+                            {
+                                ParamName = item.name,
+                                ParamValue = item.value
+                            });
+                        }
+                    }
+                    else
+                    {
+                        Logger.Log("list was null", Logger.Info.Warning);
+                        _params = null;
                     }
 
-                    Xml_Instance.Logs.Add(new XML.LogInfo
-                    {
-                        CallerName = Utils.GetInfoCallingMethod(new StackTrace()),
-                        Type = GetTypeString(LogType.ObjectValues),
-                        Log = header,
-                        ValueList = _params
-                    });
+                    //foreach (var property in type.GetProperties())
+                    //{
+                    //    Type t = Utils.TypeIsList(property.PropertyType) ? Utils.GetTypeFromList(property.PropertyType) : property.PropertyType;
 
+                    //    Utils.GetPropertyNameAndValue(property);
+
+                    //    _params.li.Add(new Param
+                    //    {
+                    //        ParamName = property.Name,
+                    //        ParamValue = t.Name
+                    //    });
+                    //}
+
+                    AddLog(header, _params, new StackTrace(), LogType.ObjectValues);
                     Save();
                 }
                 else Logger.Log("Object was null", Logger.Info.Warning);
             }
+        }
+
+        public static void LogException(string exception, string header = null)
+        {
+            lock (_lock)
+            {
+
+            }
+        }
+
+        internal static void AddLog(string log, ValueList paramValues = null, StackTrace trace = null, LogType logType = LogType.Info)
+        {
+            Xml_Instance.Logs.Add(new LogInfo
+            {
+                CallerName = (trace is not null) ? Utils.GetInfoCallingMethod(trace) : "",
+                Type = GetTypeString(logType),
+                ParamListValues = paramValues, //?? new ValueList(),
+                Log = log ?? ""
+            });
+        }
+
+        public static void debug()
+        {
+            LogValueList("test", Xml_Instance, nameof(Xml_Instance));
         }
 
         internal static void Save()
@@ -92,9 +134,13 @@ namespace ResUtils.CustomLogger.XML
         {
             XmlLoggerRoot temp = await CustomDeserializer.XML_Deserialize<XmlLoggerRoot>(defaultOutput);
 
-            if (temp.AssemblyName == Utils.GetAssemblyName() && temp != null)
+            if (temp != null)
             {
-                return temp.Logs;
+                if (temp.AssemblyName == Utils.GetAssemblyName())
+                {
+                    return temp.Logs;
+                }
+                return null;
             }
             else
             {
