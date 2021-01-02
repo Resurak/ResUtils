@@ -59,7 +59,7 @@ namespace ResUtils.CustomLogger.XML
                     Type type = typeof(T);
                     ValueList _params = new();
 
-                    List<(string name, string value)> list = Utils.GetPropertyNameAndValue(obj);
+                    List<(string name, string value)> list = Utils.RecursivePropsNameAndValue(obj);
 
                     _params.InstanceName = instanceName ?? "";
 
@@ -80,19 +80,6 @@ namespace ResUtils.CustomLogger.XML
                         Logger.Log("list was null", Logger.Info.Warning);
                         _params = null;
                     }
-
-                    //foreach (var property in type.GetProperties())
-                    //{
-                    //    Type t = Utils.TypeIsList(property.PropertyType) ? Utils.GetTypeFromList(property.PropertyType) : property.PropertyType;
-
-                    //    Utils.GetPropertyNameAndValue(property);
-
-                    //    _params.li.Add(new Param
-                    //    {
-                    //        ParamName = property.Name,
-                    //        ParamValue = t.Name
-                    //    });
-                    //}
 
                     AddLog(header, _params, new StackTrace(), LogType.ObjectValues);
                     Save();

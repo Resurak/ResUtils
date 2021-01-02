@@ -125,12 +125,32 @@ namespace ResUtils
         public static string GetStringIfValueNotNull(object str)
         {
             if (str != null)
-                return str.ToString() ?? "";
+                return str.ToString() ?? "null";
             else return "";
         }
 
-        internal static List<PropertyInfo[]> PropertyInfoArray_List = new();
+        internal static List<List<(string name, string value)>> recursiveHell = new();
         internal static List<(string name, string value)> ExternalList = new();
+
+
+        internal static Type[] AllowedTypes = new Type[] { typeof(string), typeof(int), typeof(double), typeof(long), typeof(DateTime), typeof(object), typeof(char), typeof(byte), typeof(decimal), typeof(float) };
+        internal static int recursiveDeep = 0;
+
+        public static List<(string name, string value)> RecursivePropsNameAndValue<T>(T obj)
+        {
+            List<(string name, string value)> temp = new();
+
+            recursiveHell.Add(GetPropertyNameAndValue(obj));
+
+            foreach (var item in recursiveHell)
+            {
+                if (item != null)
+                    foreach (var item2 in item)
+                        temp.Add(new(item2.name ?? "", item2.value ?? ""));
+            }
+
+            return temp;
+        }
 
         public static List<(string name, string value)> GetPropertyNameAndValue<T>(T obj)
         {
@@ -138,23 +158,38 @@ namespace ResUtils
             {
                 CustomLogger.Logger.Log("Starting GetPropertyNameAndValue", $"Type of Obj = {typeof(T)}");
 
+                string plus = "+ ";
+
+                for (int i = 0; i < recursiveDeep; i++)
+                    plus += plus;
+
                 List<(string name, string value)> MainList = new();
                 List<(string name, string value)> tempList = new();
 
-                if (TypeIsList(obj.GetType()))
+                Type MainType = obj.GetType();
+
+                if (TypeIsList(MainType))
                 {
                     CustomLogger.Logger.Log($"the passed type is a list. here you have to figure out how to handle it. obj.gettype() : {obj.GetType()}");
+
+                    List<(string name, string value)> ls = new();
+                    ls.Add(new(plus + obj.GetType().Name, ""));
+
+                    recursiveHell.Add(ls);
 
                     int index = 0;
                     foreach (var item in obj as IList)
                     {
-                        ExternalList = GetPropertyNameAndValue(item);
+                        recursiveDeep++;
+                        recursiveHell.Add(GetPropertyNameAndValue(item));
+                        recursiveDeep--;
                     }
 
                     CustomLogger.Logger.Log($"tried to make a new list. list.count = {index}");
-                } else
+                }
+                else
                 {
-                    PropertyInfo[] temp = obj.GetType().GetProperties();
+                    PropertyInfo[] temp = MainType.GetProperties();
 
                     foreach (var property in temp)
                     {
@@ -165,22 +200,30 @@ namespace ResUtils
                             object o = property.GetValue(obj);
                             MainList = GetPropertyNameAndValue(o);
                         }
-                        else
+                        else if (AllowedTypes.Contains(t))
                         {
-                            MainList.Add(new(property.Name, GetStringIfValueNotNull(property.GetValue(obj))));                        
+                            MainList.Add(new(plus + property.Name, GetStringIfValueNotNull(property.GetValue(obj))));
+                        }
+                        else if (property.GetValue(obj) != null)
+                        {
+                            List<(string name, string value)> ls = new();
+                            ls.Add(new(plus + obj.GetType().Name, "here should go the other values"));
+
+                            recursiveHell.Add(ls);
+
+                            recursiveHell.Add(GetPropertyNameAndValue(property.GetValue(obj)));
                         }
                     }
-
                 }
 
-                foreach (var item in ExternalList)
-                {
-                    MainList.Add(new(item.name, item.value));
-                }
+                foreach (var item in tempList)
+                    MainList.Add(item);
 
                 CustomLogger.Logger.Log($"method ended. total list count = {MainList.Count}");
+
                 return MainList;
-            } catch (Exception e) { CustomLogger.Logger.LogException($"GetPropertyNameAndValue failed to execute", e.ToString()); return null; }
+            }
+            catch (Exception e) { CustomLogger.Logger.LogException($"GetPropertyNameAndValue failed to execute", e.ToString()); return null; }
         }
     }
 }
