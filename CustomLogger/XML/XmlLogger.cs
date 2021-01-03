@@ -57,9 +57,9 @@ namespace ResUtils.CustomLogger.XML
                 if (obj != null)
                 {
                     Type type = typeof(T);
-                    ValueList _params = new();
+                    PropertyList _params = new();
 
-                    List<(string name, string value)> list = Utils.RecursivePropsNameAndValue(obj);
+                    List<PropertiesModel> list = Utils.GetListOfAllValues(obj);
 
                     _params.InstanceName = instanceName ?? "";
 
@@ -68,10 +68,12 @@ namespace ResUtils.CustomLogger.XML
                         Logger.Log("list was not null");
                         foreach (var item in list)
                         {
-                            _params.li.Add(new Param
+                            _params.li.Add(new Property
                             {
-                                ParamName = item.name,
-                                ParamValue = item.value
+                                Indent = item.Indent,
+                                PropertyType = item.PropertyType,
+                                PropertyName = item.PropertyName,
+                                PropertyValue = item.PropertyValue
                             });
                         }
                     }
@@ -96,20 +98,29 @@ namespace ResUtils.CustomLogger.XML
             }
         }
 
-        internal static void AddLog(string log, ValueList paramValues = null, StackTrace trace = null, LogType logType = LogType.Info)
+        internal static void AddLog(string log, PropertyList paramValues = null, StackTrace trace = null, LogType logType = LogType.Info)
         {
             Xml_Instance.Logs.Add(new LogInfo
             {
                 CallerName = (trace is not null) ? Utils.GetInfoCallingMethod(trace) : "",
                 Type = GetTypeString(logType),
-                ParamListValues = paramValues, //?? new ValueList(),
+                PropertyListValues = paramValues, //?? new ValueList(),
                 Log = log ?? ""
             });
         }
 
         public static void debug()
         {
-            LogValueList("test", Xml_Instance, nameof(Xml_Instance));
+            XmlLoggerRoot test = new XmlLoggerRoot
+            {
+                AssemblyName = "Testing",
+                Logs = new List<LogInfo>()
+            };
+            test.Logs.Add(new LogInfo { CallerName = "testing", Date = "shish", Log = "shupt", Type = "faccinio", PropertyListValues = new PropertyList { InstanceName = "vafanculu", li = new List<Property>() } });
+            test.Logs[0].PropertyListValues.li.Add(new Property { PropertyName = "osignur", PropertyValue = "vafanculu" });
+
+            LogValueList("test", test, nameof(test));
+            //LogValueList("test", Xml_Instance, nameof(Xml_Instance));
         }
 
         internal static void Save()
@@ -123,11 +134,7 @@ namespace ResUtils.CustomLogger.XML
 
             if (temp != null)
             {
-                if (temp.AssemblyName == Utils.GetAssemblyName())
-                {
-                    return temp.Logs;
-                }
-                return null;
+                return (temp.AssemblyName == Utils.GetAssemblyName()) ? temp.Logs : null;
             }
             else
             {

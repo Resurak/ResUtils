@@ -33,12 +33,12 @@ namespace ResUtils.CustomLogger.XML
         public string Log { get; set; }
 
         [XmlElement(IsNullable = false)]
-        public ValueList ParamListValues { get; set; }
+        public PropertyList PropertyListValues { get; set; }
     }
 
-    public class ValueList
+    public class PropertyList
     {
-        public ValueList()
+        public PropertyList()
         {
             li = new();
         }
@@ -46,20 +46,26 @@ namespace ResUtils.CustomLogger.XML
         [XmlAttribute]
         public string InstanceName { get; set; }
 
-        public List<Param> li { get; set; }
+        public List<Property> li { get; set; }
     }
 
-    public class Param
+    public class Property
     {
-        public Param()
+        public Property()
         {
 
         }
 
         [XmlAttribute]
-        public string ParamName { get; set; }
+        public string Indent { get; set; }
 
         [XmlAttribute]
-        public string ParamValue { get; set; }
+        public string PropertyType { get; set; }
+
+        [XmlAttribute]
+        public string PropertyName { get; set; }
+
+        [XmlAttribute]
+        public string PropertyValue { get; set; }
     }
 }
