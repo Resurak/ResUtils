@@ -5,9 +5,9 @@ using System.Xml;
 using System.Xml.Serialization;
 using System.IO;
 
-namespace ResUtils.Versions.Model
+namespace ResUtils.Models
 {
-    public class VersionTrackerXML
+    public class XmlVersionTrackerTree
     {
         [XmlAttribute]
         public string AssemblyName { get; set; }

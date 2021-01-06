@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Diagnostics;
 
-namespace ResUtils.CustomLogger
+namespace ResUtils.CustomLogger.Text
 {
-    public static class Logger
+    public static class TextLogger
     {
         internal static string defaultFileName = "outputLog.txt";
         internal static string defaultOutput => Path.Combine(Utils.GetExeAssemblyPath(), defaultFileName);
@@ -164,7 +164,7 @@ namespace ResUtils.CustomLogger
             }
         }
 
-        internal static string CreateLogLine(StackTrace stack, string value = null, string[] values = null, string listHeader = null, Info info = Info.Info, bool omitInfo = false, bool multiline = false)
+        internal static string CreateLogLine(StackTrace stack, string value = null, string[] values = null, string listHeader = null, Info info = Info.Info, bool omitInfo = false, bool multiline = false, [CallerMemberName] string memberName = "")
         {
             StringBuilder logLine = new();
 
@@ -173,7 +173,7 @@ namespace ResUtils.CustomLogger
                 logLine.Append(time);
                 logLine.Append(" || ");
 
-                logLine.Append($"[ {Utils.GetInfoCallingMethod(stack)} ]");
+                logLine.Append($"[ {memberName/*Utils.GetInfoCallingMethod(stack, memberName)*/} ]");
 
                 logLine.Append(" || ");
 

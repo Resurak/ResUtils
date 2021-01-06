@@ -7,6 +7,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using ResUtils.CustomLogger.Text;
+using ResUtils.Models;
 using ResUtils.Serialization;
 
 namespace ResUtils.CustomLogger.XML
@@ -19,19 +21,19 @@ namespace ResUtils.CustomLogger.XML
 
         internal static object _lock = new object();
 
-        internal static XmlLoggerRoot Xml_Instance = new();
+        internal static XmlLoggerTree Xml_Instance = new();
 
         public static async void StartLogging(bool overwrite)
         {
             if (overwrite) File.Delete(defaultOutput);
 
-            Xml_Instance = new XmlLoggerRoot
+            Xml_Instance = new XmlLoggerTree
             {
                 AssemblyName = Utils.GetAssemblyName(),
                 Logs = overwrite ? new List<LogInfo>() : await LoadPreviousLogs() ?? new List<LogInfo>()
             };
 
-            Xml_Instance.Logs.Add(new XML.LogInfo
+            Xml_Instance.Logs.Add(new LogInfo
             {
                 Type = GetTypeString(LogType.StartLog),
                 Log = "----- Start Log ------"
@@ -50,44 +52,47 @@ namespace ResUtils.CustomLogger.XML
             }
         }
 
-        public static void LogValueList<T>(string header, T obj, string instanceName = null)
+        public static async void LogValueList<T>(string header, T obj, string instanceName = null)
         {
-            lock (_lock)
+            await Task.Run(() =>
             {
-                if (obj != null)
+                lock (_lock)
                 {
-                    Type type = typeof(T);
-                    PropertyList _params = new();
-
-                    List<PropertiesModel> list = Utils.GetListOfAllValues(obj);
-
-                    _params.InstanceName = instanceName ?? "";
-
-                    if (list != null && list.Count > 0)
+                    if (obj != null)
                     {
-                        Logger.Log("list was not null");
-                        foreach (var item in list)
+                        Type type = typeof(T);
+                        PropertyList _params = new();
+
+                        List<Properties> list = Utils.GetListOfPropertiesAndValues(obj);
+
+                        _params.InstanceName = instanceName ?? "";
+
+                        if (list != null && list.Count > 0)
                         {
-                            _params.li.Add(new Property
+                            TextLogger.Log("list was not null");
+                            foreach (var item in list)
                             {
-                                Indent = item.Indent,
-                                PropertyType = item.PropertyType,
-                                PropertyName = item.PropertyName,
-                                PropertyValue = item.PropertyValue
-                            });
+                                _params.li.Add(new Property
+                                {
+                                    Indent = item.Indent,
+                                    PropertyType = item.PropertyType,
+                                    PropertyName = item.PropertyName,
+                                    PropertyValue = item.PropertyValue
+                                });
+                            }
                         }
-                    }
-                    else
-                    {
-                        Logger.Log("list was null", Logger.Info.Warning);
-                        _params = null;
-                    }
+                        else
+                        {
+                            TextLogger.Log("list was null", TextLogger.Info.Warning);
+                            _params = null;
+                        }
 
-                    AddLog(header, _params, new StackTrace(), LogType.ObjectValues);
-                    Save();
+                        AddLog(header, _params, new StackTrace(), LogType.ObjectValues);
+                        Save();
+                    }
+                    else TextLogger.Log("Object was null", TextLogger.Info.Warning);
                 }
-                else Logger.Log("Object was null", Logger.Info.Warning);
-            }
+            });
         }
 
         public static void LogException(string exception, string header = null)
@@ -98,11 +103,11 @@ namespace ResUtils.CustomLogger.XML
             }
         }
 
-        internal static void AddLog(string log, PropertyList paramValues = null, StackTrace trace = null, LogType logType = LogType.Info)
+        internal static void AddLog(string log, PropertyList paramValues = null, StackTrace trace = null, LogType logType = LogType.Info, [CallerMemberName] string name = "")
         {
             Xml_Instance.Logs.Add(new LogInfo
             {
-                CallerName = (trace is not null) ? Utils.GetInfoCallingMethod(trace) : "",
+                CallerName = Utils.GetCallingMethod(trace, name),//(trace is not null) ? Utils.GetInfoCallingMethod(trace, name) : "",
                 Type = GetTypeString(logType),
                 PropertyListValues = paramValues, //?? new ValueList(),
                 Log = log ?? ""
@@ -111,7 +116,7 @@ namespace ResUtils.CustomLogger.XML
 
         public static void debug()
         {
-            XmlLoggerRoot test = new XmlLoggerRoot
+            XmlLoggerTree test = new XmlLoggerTree
             {
                 AssemblyName = "Testing",
                 Logs = new List<LogInfo>()
@@ -120,17 +125,17 @@ namespace ResUtils.CustomLogger.XML
             test.Logs[0].PropertyListValues.li.Add(new Property { PropertyName = "osignur", PropertyValue = "vafanculu" });
 
             LogValueList("test", test, nameof(test));
-            //LogValueList("test", Xml_Instance, nameof(Xml_Instance));
+            LogValueList("test", Xml_Instance, nameof(Xml_Instance));
         }
 
         internal static void Save()
         {
-            CustomSerializer.SerializeTo_XML_File<XmlLoggerRoot>(Xml_Instance, defaultOutput);
+            CustomSerializer.SerializeTo_XML_File<XmlLoggerTree>(Xml_Instance, defaultOutput);
         }
 
         internal static async Task<List<LogInfo>> LoadPreviousLogs()
         {
-            XmlLoggerRoot temp = await CustomDeserializer.XML_Deserialize<XmlLoggerRoot>(defaultOutput);
+            XmlLoggerTree temp = await CustomDeserializer.XML_Deserialize<XmlLoggerTree>(defaultOutput);
 
             if (temp != null)
             {
@@ -138,7 +143,7 @@ namespace ResUtils.CustomLogger.XML
             }
             else
             {
-                Logger.Log("temp.assemblyname was not utils.getassemblyname", Logger.Info.Warning);
+                TextLogger.Log("temp.assemblyname was not utils.getassemblyname", TextLogger.Info.Warning);
                 return null;
             }
         }

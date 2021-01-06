@@ -6,12 +6,7 @@ namespace ResUtils
 {
     public class Converter
     {
-        public static string Date_To_String(DateTime dateTime)
-        {
-            return $"{dateTime.Day}/{dateTime.Month}/{dateTime.Year} - {dateTime.Hour}:{(dateTime.Minute < 10 ? "0" + dateTime.Minute : dateTime.Minute)}";
-        }
-
-        public static string DateToString(DateTime dateTime, bool addSeconds)
+        public static string DateToString(DateTime dateTime, bool addSeconds = false)
         {
             if (addSeconds)
                 return $"{dateTime.Day}/{dateTime.Month}/{dateTime.Year} - {dateTime.Hour}:{(dateTime.Minute < 10 ? "0" + dateTime.Minute : dateTime.Minute)}:{(dateTime.Second < 10 ? "0" + dateTime.Second : dateTime.Second)}";

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using ResUtils.CustomLogger;
+using ResUtils.CustomLogger.Text;
 
 namespace ResUtils.Serialization
 {
@@ -16,8 +17,6 @@ namespace ResUtils.Serialization
         {
             if (!string.IsNullOrWhiteSpace(path))
             {
-                Logger.Log($"Starting Deserialization : {nameof(XML_Deserialize)}");
-
                 lock (_lock)
                 {
                     using (var file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Read))
@@ -29,21 +28,19 @@ namespace ResUtils.Serialization
                                 var deserializer = new XmlSerializer(typeof(T));
                                 object value = deserializer.Deserialize(file);
 
-                                Logger.Log("Object deserialized, returning value");
-
                                 file.Close();
 
                                 return (T)Convert.ChangeType(value, typeof(T));
                             }
                             catch (Exception e)
                             {
-                                Logger.LogException("Deserialization failed!", e.Message.ToString());
+                                TextLogger.LogException("XMLDeserialization failed!", e.Message.ToString());
                                 return default;
                             }
                         }
                         else
                         {
-                            Logger.Log($"Tried to start {nameof(XML_Deserialize)} - File was empty");
+                            TextLogger.Log($"Tried to start {nameof(XML_Deserialize)} - File was empty");
                             return default;
                         }
                     }
@@ -51,7 +48,7 @@ namespace ResUtils.Serialization
             }
             else
             {
-                Logger.Log($"Tried to start {nameof(XML_Deserialize)} - Path was null");
+                TextLogger.Log($"Tried to start {nameof(XML_Deserialize)} - Path was null");
                 return default;
             }
         }

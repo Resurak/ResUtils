@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ResUtils.CustomLogger
+namespace ResUtils.Models
 {
-    public class PropertiesModel
+    public class Properties
     {
         public string Indent { get; set; }
         public string PropertyType { get; set; }

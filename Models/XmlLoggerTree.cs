@@ -4,9 +4,9 @@ using System.Reflection;
 using System.Text;
 using System.Xml.Serialization;
 
-namespace ResUtils.CustomLogger.XML
+namespace ResUtils.Models
 {
-    public class XmlLoggerRoot
+    public class XmlLoggerTree
     {
         [XmlAttribute]
         public string AssemblyName { get; set; }

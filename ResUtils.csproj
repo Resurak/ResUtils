@@ -7,6 +7,5 @@
 
   <ItemGroup>
     <Folder Include="Crypt\" />
-    <Folder Include="CustomLogger\Text\" />
   </ItemGroup>
   </Project>

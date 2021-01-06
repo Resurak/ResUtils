@@ -9,6 +9,9 @@ using ResUtils.Serialization;
 using ResUtils.CustomLogger;
 using System.Threading.Tasks;
 using System.Linq;
+using ResUtils.CustomLogger.Text;
+using ResUtils.Models;
+using Version = ResUtils.Models.Version;
 
 namespace ResUtils.Versions
 {
@@ -61,7 +64,7 @@ namespace ResUtils.Versions
 
         public Assembly Assembly;
 
-        public Model.VersionTrackerXML Versions = new();
+        public XmlVersionTrackerTree Versions = new();
 
         public string RootFolderName { get; set; }
         public string RootFolderPath { get; set; }
@@ -95,7 +98,7 @@ namespace ResUtils.Versions
 
         public async void Save()
         {
-            Logger.Log("Version Tracker - Start save");
+            TextLogger.Log("Version Tracker - Start save");
 
             await Task.Run(() =>
             {
@@ -103,17 +106,17 @@ namespace ResUtils.Versions
 
                 if (Assembly != null && !LoadFailed)
                 {
-                    Model.VersionTrackerXML versions = new Model.VersionTrackerXML
+                    XmlVersionTrackerTree versions = new XmlVersionTrackerTree
                     {
                         AssemblyName = Assembly.GetName().Name,
-                        Versions = Versions.Versions ?? new List<Model.Version>()
+                        Versions = Versions.Versions ?? new List<Version>()
                     };
 
                     int lastRev = 0;
 
                     if (versions.Versions.Count > 0)
                     {
-                        Logger.Log($"Total number of versions = {versions.Versions.Count}");
+                        TextLogger.Log($"Total number of versions = {versions.Versions.Count}");
 
                         if (versions.Versions.Last().Minor != Minor || versions.Versions.Last().Major != Major || versions.Versions.Last().Build != Build)
                             lastRev = 0;
@@ -123,9 +126,9 @@ namespace ResUtils.Versions
                             Comment = ""; 
                     }
 
-                    versions.Versions.Add(new Model.Version
+                    versions.Versions.Add(new Version
                     {
-                        BuildDate = Converter.Date_To_String(DateTime.Now),
+                        BuildDate = Converter.DateToString(DateTime.Now),
                         Comment = this.Comment,
                         Major = this.Major,
                         Minor = this.Minor,
@@ -134,29 +137,29 @@ namespace ResUtils.Versions
                         ver = $"{Major}.{Minor}.{Build} rev {lastRev}"
                     });
 
-                    Logger.Log($"Current version = {versions.Versions.Last().ver}");
+                    TextLogger.Log($"Current version = {versions.Versions.Last().ver}");
 
-                    CustomSerializer.SerializeTo_XML_File<Model.VersionTrackerXML>(versions, saveFileName);
+                    CustomSerializer.SerializeTo_XML_File<XmlVersionTrackerTree>(versions, saveFileName);
                 }
             });
 
-            Logger.Log("Version saved");
+            TextLogger.Log("Version saved");
         }
 
         internal async void Load()
         {
-            Logger.Log("Loading version file");
+            TextLogger.Log("Loading version file");
 
             AssemblyFolderName = Assembly.GetName().Name;
             SaveFileName = $"{Assembly.GetName().Name}.xml";
 
             Utils.CheckDir(rootPath);
 
-            Versions = await CustomDeserializer.XML_Deserialize<Model.VersionTrackerXML>(saveFileName) ?? new Model.VersionTrackerXML();
+            Versions = await CustomDeserializer.XML_Deserialize<XmlVersionTrackerTree>(saveFileName) ?? new XmlVersionTrackerTree();
 
             if (string.IsNullOrWhiteSpace(Versions.AssemblyName))
-                Logger.Log("Version file was null. Created new", Logger.Info.Warning);
-            else Logger.Log("Version file loaded");
+                TextLogger.Log("Version file was null. Created new", TextLogger.Info.Warning);
+            else TextLogger.Log("Version file loaded");
 
 
             Loaded = true;
